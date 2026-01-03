@@ -1,0 +1,15 @@
+# Blog Collector Configuration
+
+# Maximum articles to publish per run
+max_articles_per_run: 2
+
+# Target repository for publishing
+target_repo: "hotker/hexo-blog"
+
+# Default cover image (when no image is available)
+default_cover: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200"
+
+# Article settings
+article:
+  min_content_length: 200  # Minimum content length to consider
+  max_age_days: 3          # Maximum age of articles to collect

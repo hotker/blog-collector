@@ -1,0 +1,59 @@
+# AI Article Sources Configuration
+
+# RSS Feeds
+rss:
+  - name: "OpenAI Blog"
+    url: "https://openai.com/blog/rss.xml"
+    lang: "en"
+
+  - name: "Google AI Blog"
+    url: "https://blog.google/technology/ai/rss/"
+    lang: "en"
+
+  - name: "Anthropic News"
+    url: "https://www.anthropic.com/rss.xml"
+    lang: "en"
+
+  - name: "Hacker News AI"
+    url: "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude"
+    lang: "en"
+
+  - name: "MIT Technology Review AI"
+    url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    lang: "en"
+
+  - name: "The Verge AI"
+    url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    lang: "en"
+
+# API Sources
+api:
+  - name: "Reddit MachineLearning"
+    type: "reddit"
+    subreddit: "MachineLearning"
+    sort: "hot"
+    limit: 10
+
+  - name: "Reddit LocalLLaMA"
+    type: "reddit"
+    subreddit: "LocalLLaMA"
+    sort: "hot"
+    limit: 10
+
+  - name: "Reddit ChatGPT"
+    type: "reddit"
+    subreddit: "ChatGPT"
+    sort: "hot"
+    limit: 10
+
+# Website Scraping (use carefully, respect robots.txt)
+websites:
+  - name: "机器之心"
+    url: "https://www.jiqizhixin.com/"
+    selector: ".article-item"
+    lang: "zh"
+
+  - name: "量子位"
+    url: "https://www.qbitai.com/"
+    selector: ".post-item"
+    lang: "zh"
