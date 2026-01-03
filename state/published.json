@@ -1,3 +1,16 @@
 {
-  "articles": []
+  "articles": [
+    {
+      "source_url": "https://github.com/kidandcat/ccc",
+      "title": "远程控制代码会话：CCC项目解析",
+      "published_at": "2026-01-03T14:49:07.669463",
+      "hexo_path": "source/_posts/2026-01-03-yuan-cheng-kong-zhi-dai-ma-hui-hua-cccxiang-mu-jie.md"
+    },
+    {
+      "source_url": "https://sankalp.bearblog.dev/my-experience-with-claude-code-20-and-how-to-get-better-at-using-coding-agents/",
+      "title": "解锁Claude Code 2.0：提升编码效率的AI新途径",
+      "published_at": "2026-01-03T14:49:09.082897",
+      "hexo_path": "source/_posts/2026-01-03-jie-suo-claude-code-2-0-ti-sheng-bian-ma-xiao-lu-d.md"
+    }
+  ]
 }
