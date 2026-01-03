@@ -119,20 +119,24 @@ class Rewriter:
     def _try_groq(self, prompt: str) -> Optional[dict]:
         """Try to generate content using Groq API"""
         try:
+            # Use a more explicit JSON prompt for Groq
+            json_prompt = prompt + "\n\n重要：只输出JSON，不要输出任何其他文字、解释或markdown代码块标记。"
+
             chat_completion = self.groq_client.chat.completions.create(
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a professional AI technology blogger. Always respond in valid JSON format."
+                        "content": "You are a professional AI technology blogger. You MUST respond with ONLY valid JSON, no markdown, no explanations, no code blocks. Just pure JSON object starting with { and ending with }."
                     },
                     {
                         "role": "user",
-                        "content": prompt
+                        "content": json_prompt
                     }
                 ],
                 model="llama-3.3-70b-versatile",
-                temperature=0.7,
-                max_tokens=4096
+                temperature=0.5,
+                max_tokens=4096,
+                response_format={"type": "json_object"}
             )
             result_text = chat_completion.choices[0].message.content
             return self._parse_json_response(result_text)
