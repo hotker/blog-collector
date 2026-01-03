@@ -1,34 +1,18 @@
 """
-Rewriter module - Uses Gemini AI to rewrite articles
+Rewriter module - Uses Gemini AI (primary) and Groq (fallback) to rewrite articles
 """
 
 import os
 import json
 import re
-import google.generativeai as genai
 from typing import Optional
 from datetime import datetime
 
 
 class Rewriter:
-    """Rewrites articles using Gemini AI"""
+    """Rewrites articles using AI APIs with automatic fallback"""
 
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY is required")
-
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
-
-    def rewrite(self, title: str, content: str, source_name: str, source_url: str) -> Optional[dict]:
-        """
-        Rewrite an article using Gemini AI
-
-        Returns:
-            dict with keys: title, summary, tags, categories, content
-        """
-        prompt = f"""你是一位专业的AI领域技术博主。请基于以下原文，创作一篇全新的中文博客文章。
+    REWRITE_PROMPT = """你是一位专业的AI领域技术博主。请基于以下原文，创作一篇全新的中文博客文章。
 
 要求：
 1. 用自己的语言重新表达，不要直接翻译
@@ -42,7 +26,7 @@ class Rewriter:
 原文来源：{source_name}
 原文链接：{source_url}
 原文内容：
-{content[:8000]}
+{content}
 
 请严格按照以下JSON格式输出（不要添加任何其他文字）：
 {{
@@ -51,31 +35,117 @@ class Rewriter:
     "tags": ["标签1", "标签2", "标签3"],
     "categories": ["AI资讯"],
     "content": "正文内容（Markdown格式，包含小标题和段落）"
-}}
-"""
+}}"""
 
-        try:
-            response = self.model.generate_content(prompt)
-            result_text = response.text
+    def __init__(
+        self,
+        gemini_api_key: Optional[str] = None,
+        groq_api_key: Optional[str] = None
+    ):
+        self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
+        self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
 
-            # Extract JSON from response
-            result = self._parse_json_response(result_text)
+        self.gemini_model = None
+        self.groq_client = None
 
+        # Initialize Gemini
+        if self.gemini_api_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.gemini_api_key)
+                self.gemini_model = genai.GenerativeModel("gemini-2.0-flash")
+                print("Gemini API initialized")
+            except Exception as e:
+                print(f"Failed to initialize Gemini: {e}")
+
+        # Initialize Groq
+        if self.groq_api_key:
+            try:
+                from groq import Groq
+                self.groq_client = Groq(api_key=self.groq_api_key)
+                print("Groq API initialized")
+            except Exception as e:
+                print(f"Failed to initialize Groq: {e}")
+
+        if not self.gemini_model and not self.groq_client:
+            raise ValueError("At least one API (GEMINI_API_KEY or GROQ_API_KEY) is required")
+
+    def rewrite(self, title: str, content: str, source_name: str, source_url: str) -> Optional[dict]:
+        """
+        Rewrite an article using AI APIs with automatic fallback
+
+        Returns:
+            dict with keys: title, summary, tags, categories, content
+        """
+        prompt = self.REWRITE_PROMPT.format(
+            title=title,
+            source_name=source_name,
+            source_url=source_url,
+            content=content[:8000]
+        )
+
+        # Try Gemini first
+        if self.gemini_model:
+            result = self._try_gemini(prompt)
             if result:
-                # Validate required fields
-                required_fields = ["title", "summary", "tags", "content"]
-                if all(field in result for field in required_fields):
-                    return result
+                print("    [Gemini] Success")
+                return result
+            print("    [Gemini] Failed, trying Groq...")
 
-            print(f"Invalid response format from Gemini")
+        # Fallback to Groq
+        if self.groq_client:
+            result = self._try_groq(prompt)
+            if result:
+                print("    [Groq] Success")
+                return result
+            print("    [Groq] Failed")
+
+        return None
+
+    def _try_gemini(self, prompt: str) -> Optional[dict]:
+        """Try to generate content using Gemini API"""
+        try:
+            response = self.gemini_model.generate_content(prompt)
+            result_text = response.text
+            return self._parse_json_response(result_text)
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "quota" in error_str.lower():
+                print(f"    [Gemini] Quota exceeded")
+            else:
+                print(f"    [Gemini] Error: {e}")
             return None
 
+    def _try_groq(self, prompt: str) -> Optional[dict]:
+        """Try to generate content using Groq API"""
+        try:
+            chat_completion = self.groq_client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a professional AI technology blogger. Always respond in valid JSON format."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+                max_tokens=4096
+            )
+            result_text = chat_completion.choices[0].message.content
+            return self._parse_json_response(result_text)
         except Exception as e:
-            print(f"Error calling Gemini API: {e}")
+            error_str = str(e)
+            if "429" in error_str or "rate" in error_str.lower():
+                print(f"    [Groq] Rate limited")
+            else:
+                print(f"    [Groq] Error: {e}")
             return None
 
     def _parse_json_response(self, text: str) -> Optional[dict]:
-        """Parse JSON from Gemini response, handling markdown code blocks"""
+        """Parse JSON from AI response, handling markdown code blocks"""
         # Try to extract JSON from markdown code block
         json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
         if json_match:
@@ -85,15 +155,25 @@ class Rewriter:
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if json_match:
             try:
-                return json.loads(json_match.group())
+                result = json.loads(json_match.group())
+                # Validate required fields
+                required_fields = ["title", "summary", "tags", "content"]
+                if all(field in result for field in required_fields):
+                    return result
             except json.JSONDecodeError:
                 pass
 
         # Try parsing the whole text
         try:
-            return json.loads(text)
+            result = json.loads(text)
+            required_fields = ["title", "summary", "tags", "content"]
+            if all(field in result for field in required_fields):
+                return result
         except json.JSONDecodeError:
-            return None
+            pass
+
+        print("    Failed to parse JSON response")
+        return None
 
     def generate_cover_prompt(self, title: str, summary: str) -> str:
         """Generate a prompt for AI image generation (for future use)"""
@@ -146,7 +226,7 @@ banner: {cover_url}
 
 
 if __name__ == "__main__":
-    # Test with sample content
+    # Test
     rewriter = Rewriter()
     result = rewriter.rewrite(
         title="Test Article",
