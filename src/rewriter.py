@@ -19,7 +19,7 @@ class Rewriter:
             raise ValueError("GEMINI_API_KEY is required")
 
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-pro")
+        self.model = genai.GenerativeModel("gemini-2.0-flash")
 
     def rewrite(self, title: str, content: str, source_name: str, source_url: str) -> Optional[dict]:
         """

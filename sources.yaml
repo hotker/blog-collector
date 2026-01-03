@@ -26,25 +26,13 @@ rss:
     url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
     lang: "en"
 
-# API Sources
-api:
-  - name: "Reddit MachineLearning"
-    type: "reddit"
-    subreddit: "MachineLearning"
-    sort: "hot"
-    limit: 10
+  - name: "Ars Technica AI"
+    url: "https://feeds.arstechnica.com/arstechnica/technology-lab"
+    lang: "en"
 
-  - name: "Reddit LocalLLaMA"
-    type: "reddit"
-    subreddit: "LocalLLaMA"
-    sort: "hot"
-    limit: 10
-
-  - name: "Reddit ChatGPT"
-    type: "reddit"
-    subreddit: "ChatGPT"
-    sort: "hot"
-    limit: 10
+  - name: "TechCrunch AI"
+    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    lang: "en"
 
 # Website Scraping (use carefully, respect robots.txt)
 websites:
