@@ -1,7 +1,7 @@
 """
 Blog Collector - Main entry point
 
-Collects AI-related articles from various sources, rewrites them using Gemini AI,
+Collects AI-related articles from various sources, rewrites them using AI,
 and publishes them to the hexo-blog repository.
 """
 
@@ -49,8 +49,8 @@ def main():
     for i, article in enumerate(candidates, 1):
         print(f"  {i}. {article.title[:50]}... ({article.source_name})")
 
-    # Step 2: Rewrite articles using Gemini AI
-    print("\n[2/3] Rewriting articles with Gemini AI...")
+    # Step 2: Rewrite articles using AI
+    print("\n[2/3] Rewriting articles with AI...")
     rewriter = Rewriter()
     rewritten_articles = []
 

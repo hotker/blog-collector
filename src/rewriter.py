@@ -1,5 +1,5 @@
 """
-Rewriter module - Uses Gemini AI (primary) and Groq (fallback) to rewrite articles
+Rewriter module - Uses self-hosted newapi to rewrite articles
 """
 
 import os
@@ -12,7 +12,7 @@ from src.covers import get_smart_cover, get_random_cover
 
 
 class Rewriter:
-    """Rewrites articles using AI APIs with automatic fallback"""
+    """Rewrites articles using OpenAI-compatible API"""
 
     REWRITE_PROMPT = """你是一位专业的AI领域技术博主。请基于以下原文，创作一篇全新的中文博客文章。
 
@@ -41,40 +41,34 @@ class Rewriter:
 
     def __init__(
         self,
-        gemini_api_key: Optional[str] = None,
-        groq_api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        api_base: Optional[str] = None,
+        model: Optional[str] = None
     ):
-        self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
-        self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.api_base = api_base or os.getenv("OPENAI_API_BASE", "https://api.hotker.com/v1")
+        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-        self.gemini_model = None
-        self.groq_client = None
+        self.client = None
 
-        # Initialize Gemini
-        if self.gemini_api_key:
+        # Initialize OpenAI client
+        if self.api_key:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.gemini_api_key)
-                self.gemini_model = genai.GenerativeModel("gemini-2.0-flash")
-                print("Gemini API initialized")
+                from openai import OpenAI
+                self.client = OpenAI(
+                    api_key=self.api_key,
+                    base_url=self.api_base
+                )
+                print(f"OpenAI API initialized (base: {self.api_base})")
             except Exception as e:
-                print(f"Failed to initialize Gemini: {e}")
+                print(f"Failed to initialize OpenAI client: {e}")
 
-        # Initialize Groq
-        if self.groq_api_key:
-            try:
-                from groq import Groq
-                self.groq_client = Groq(api_key=self.groq_api_key)
-                print("Groq API initialized")
-            except Exception as e:
-                print(f"Failed to initialize Groq: {e}")
-
-        if not self.gemini_model and not self.groq_client:
-            raise ValueError("At least one API (GEMINI_API_KEY or GROQ_API_KEY) is required")
+        if not self.client:
+            raise ValueError("OPENAI_API_KEY is required")
 
     def rewrite(self, title: str, content: str, source_name: str, source_url: str) -> Optional[dict]:
         """
-        Rewrite an article using AI APIs with automatic fallback
+        Rewrite an article using OpenAI-compatible API
 
         Returns:
             dict with keys: title, summary, tags, categories, content
@@ -86,45 +80,18 @@ class Rewriter:
             content=content[:8000]
         )
 
-        # Try Gemini first
-        if self.gemini_model:
-            result = self._try_gemini(prompt)
-            if result:
-                print("    [Gemini] Success")
-                return result
-            print("    [Gemini] Failed, trying Groq...")
-
-        # Fallback to Groq
-        if self.groq_client:
-            result = self._try_groq(prompt)
-            if result:
-                print("    [Groq] Success")
-                return result
-            print("    [Groq] Failed")
-
+        result = self._call_api(prompt)
+        if result:
+            print("    [API] Success")
+            return result
+        print("    [API] Failed")
         return None
 
-    def _try_gemini(self, prompt: str) -> Optional[dict]:
-        """Try to generate content using Gemini API"""
+    def _call_api(self, prompt: str) -> Optional[dict]:
+        """Call OpenAI-compatible API"""
         try:
-            response = self.gemini_model.generate_content(prompt)
-            result_text = response.text
-            return self._parse_json_response(result_text)
-        except Exception as e:
-            error_str = str(e)
-            if "429" in error_str or "quota" in error_str.lower():
-                print(f"    [Gemini] Quota exceeded")
-            else:
-                print(f"    [Gemini] Error: {e}")
-            return None
-
-    def _try_groq(self, prompt: str) -> Optional[dict]:
-        """Try to generate content using Groq API"""
-        try:
-            # Use a more explicit JSON prompt for Groq
-            json_prompt = prompt + "\n\n重要：只输出JSON，不要输出任何其他文字、解释或markdown代码块标记。"
-
-            chat_completion = self.groq_client.chat.completions.create(
+            response = self.client.chat.completions.create(
+                model=self.model,
                 messages=[
                     {
                         "role": "system",
@@ -132,22 +99,20 @@ class Rewriter:
                     },
                     {
                         "role": "user",
-                        "content": json_prompt
+                        "content": prompt
                     }
                 ],
-                model="llama-3.3-70b-versatile",
-                temperature=0.5,
-                max_tokens=4096,
-                response_format={"type": "json_object"}
+                temperature=0.7,
+                max_tokens=4096
             )
-            result_text = chat_completion.choices[0].message.content
+            result_text = response.choices[0].message.content
             return self._parse_json_response(result_text)
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "rate" in error_str.lower():
-                print(f"    [Groq] Rate limited")
+                print(f"    [API] Rate limited")
             else:
-                print(f"    [Groq] Error: {e}")
+                print(f"    [API] Error: {e}")
             return None
 
     def _parse_json_response(self, text: str) -> Optional[dict]:
