@@ -8,6 +8,8 @@ import re
 from typing import Optional
 from datetime import datetime
 
+from src.covers import get_smart_cover, get_random_cover
+
 
 class Rewriter:
     """Rewrites articles using AI APIs with automatic fallback"""
@@ -200,9 +202,13 @@ class Rewriter:
         categories = rewritten.get("categories", ["AI资讯"])
         categories_yaml = "\n".join(f"  - {cat}" for cat in categories)
 
-        # Default cover if not provided
+        # Default cover if not provided - use smart selection based on article content
         if not cover_url:
-            cover_url = "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200"
+            cover_url = get_smart_cover(
+                title=rewritten.get('title', ''),
+                tags=rewritten.get('tags', []),
+                summary=rewritten.get('summary', '')
+            )
 
         post = f"""---
 title: {rewritten['title']}
