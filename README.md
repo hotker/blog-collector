@@ -4,9 +4,10 @@ AI文章自动采集系统 - 每天定时采集全球优秀AI资讯，通过AI�
 
 ## 功能特点
 
-- **多源采集**：RSS订阅、网站爬虫，覆盖全球主流AI媒体
-- **双AI引擎**：Gemini（主）+ Groq（备），自动切换，保障稳定性
-- **智能改写**：AI二次创作，生成原创中文内容
+- **多源采集**：RSS订阅 + 网站爬虫，覆盖全球主流AI媒体（8个RSS源 + 2个中文站）
+- **灵活AI引擎**：OpenAI兼容API，支持自托管/第三方服务
+- **智能改写**：AI二次创作，将英文资讯转化为原创中文内容
+- **智能封面**：32张精选Unsplash AI主题图，关键词匹配自动选择
 - **自动发布**：通过GitHub API推送到hexo-blog仓库
 - **防重复**：记录已发布文章URL，避免重复采集
 - **定时运行**：GitHub Actions每天北京时间8:00自动执行
@@ -19,9 +20,9 @@ AI文章自动采集系统 - 每天定时采集全球优秀AI资讯，通过AI�
 │  GitHub Actions     │
 │  每天定时运行        │
 └─────────┬───────────┘
-          │ 1. 采集内容
-          │ 2. AI改写（Gemini → Groq）
-          │ 3. 生成md文件
+          │ 1. 采集内容（RSS/爬虫）
+          │ 2. AI改写（OpenAI兼容API）
+          │ 3. 生成Hexo Markdown
           │ 4. GitHub API推送
           ▼
 ┌─────────────────────┐
@@ -44,9 +45,10 @@ blog-collector/
 │   └── collect.yml       # GitHub Actions定时任务
 ├── src/
 │   ├── __init__.py
-│   ├── collector.py      # 采集器模块（RSS/爬虫）
-│   ├── rewriter.py       # AI改写模块（Gemini + Groq）
-│   └── publisher.py      # 发布模块（GitHub API）
+│   ├── collector.py      # 采集器（RSS解析 + 网站爬虫）
+│   ├── rewriter.py       # AI改写（OpenAI兼容API）
+│   ├── covers.py         # 智能封面选择（32张Unsplash图片）
+│   └── publisher.py      # GitHub API发布
 ├── state/
 │   └── published.json    # 已发布文章记录（防重复）
 ├── sources.yaml          # 数据源配置
@@ -64,11 +66,13 @@ blog-collector/
 
 在仓库 **Settings → Secrets and variables → Actions** 中添加：
 
-| Secret 名称 | 说明 | 获取方式 |
-|------------|------|---------|
-| `GEMINI_API_KEY` | Gemini API密钥（主AI） | [Google AI Studio](https://aistudio.google.com/app/apikey) |
-| `GROQ_API_KEY` | Groq API密钥（备用AI） | [Groq Console](https://console.groq.com/keys) |
-| `BLOG_PUSH_TOKEN` | GitHub Personal Access Token | [GitHub Settings](https://github.com/settings/tokens) |
+| Secret 名称 | 说明 | 必需 |
+|------------|------|------|
+| `OPENAI_API_KEY` | NewAPI 密钥 | 是 |
+| `OPENAI_MODEL` | 使用的模型（默认：gpt-4o-mini） | 否 |
+| `BLOG_PUSH_TOKEN` | GitHub Personal Access Token | 是 |
+
+> 默认 API 地址为 NewAPI 自托管服务地址，可在 workflow 中修改。
 
 #### 获取 GitHub Personal Access Token
 
@@ -115,62 +119,52 @@ article:
 
 ### sources.yaml - 数据源配置
 
-```yaml
-# RSS 订阅源
-rss:
-  - name: "OpenAI Blog"           # 源名称（用于标识）
-    url: "https://openai.com/blog/rss.xml"  # RSS地址
-    lang: "en"                    # 语言（en/zh）
+#### RSS 订阅源（8个）
 
-  - name: "Hacker News AI"
-    url: "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT"
-    lang: "en"
-
-# 网站爬虫（谨慎使用）
-websites:
-  - name: "机器之心"
-    url: "https://www.jiqizhixin.com/"
-    selector: ".article-item"     # CSS选择器
-    lang: "zh"
-```
-
-#### 推荐 RSS 源
-
-| 名称 | RSS 地址 | 说明 |
+| 名称 | RSS 地址 | 语言 |
 |-----|---------|------|
-| OpenAI Blog | `https://openai.com/blog/rss.xml` | OpenAI官方博客 |
-| Google AI Blog | `https://blog.google/technology/ai/rss/` | Google AI博客 |
-| Anthropic | `https://www.anthropic.com/rss.xml` | Claude官方博客 |
-| Hacker News AI | `https://hnrss.org/newest?q=AI+OR+LLM` | HN AI话题 |
-| The Verge AI | `https://www.theverge.com/rss/ai-artificial-intelligence/index.xml` | The Verge AI |
-| TechCrunch AI | `https://techcrunch.com/category/artificial-intelligence/feed/` | TechCrunch AI |
-| MIT Tech Review | `https://www.technologyreview.com/topic/artificial-intelligence/feed` | MIT科技评论 |
+| OpenAI Blog | `https://openai.com/blog/rss.xml` | en |
+| Google AI Blog | `https://blog.google/technology/ai/rss/` | en |
+| Anthropic News | `https://www.anthropic.com/rss.xml` | en |
+| Hacker News AI | `https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude` | en |
+| MIT Technology Review AI | `https://www.technologyreview.com/topic/artificial-intelligence/feed` | en |
+| The Verge AI | `https://www.theverge.com/rss/ai-artificial-intelligence/index.xml` | en |
+| Ars Technica AI | `https://feeds.arstechnica.com/arstechnica/technology-lab` | en |
+| TechCrunch AI | `https://techcrunch.com/category/artificial-intelligence/feed/` | en |
+
+#### 网站爬虫（2个）
+
+| 名称 | URL | CSS选择器 |
+|-----|-----|----------|
+| 机器之心 | `https://www.jiqizhixin.com/` | `.article-item` |
+| 量子位 | `https://www.qbitai.com/` | `.post-item` |
 
 ## AI 引擎说明
 
-### 双引擎自动切换
+### NewAPI 自托管服务
 
-```
-请求 → Gemini API
-         │
-         ├─ 成功 → 返回结果
-         │
-         └─ 失败（429配额用尽）
-                │
-                ▼
-            Groq API
-                │
-                ├─ 成功 → 返回结果
-                │
-                └─ 失败 → 跳过该文章
-```
+系统使用 NewAPI 自托管的 OpenAI 兼容 API 接口，不支持官方 API。
 
-### 使用的模型
+**优势**：
+- 零成本使用 GPT-4o-mini 等模型
+- 更高的可用性和稳定性
+- 完全的数据控制
 
-| 引擎 | 模型 | 说明 |
-|-----|------|------|
-| Gemini | `gemini-2.0-flash` | 主引擎，快速响应 |
-| Groq | `llama-3.3-70b-versatile` | 备用引擎，免费额度高 |
+**支持的模型**：
+- GPT-4o-mini（默认）
+- GPT-4o
+- Claude 3.5 Sonnet
+- 其他 OpenAI 兼容模型
+
+### 环境变量配置
+
+| 环境变量 | 说明 | 默认值 |
+|---------|------|--------|
+| `OPENAI_API_KEY` | NewAPI 密钥 | 必需 |
+| `OPENAI_API_BASE` | NewAPI 服务地址 | `https://api.hotker.com/v1` |
+| `OPENAI_MODEL` | 使用的模型 | `gpt-4o-mini` |
+
+> **注意**：本系统仅支持 NewAPI 自托管服务，不支持官方 OpenAI API。
 
 ## 本地开发
 
@@ -183,8 +177,9 @@ pip install -r requirements.txt
 ### 设置环境变量
 
 ```bash
-export GEMINI_API_KEY="your-gemini-api-key"
-export GROQ_API_KEY="your-groq-api-key"
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_API_BASE="https://api.hotker.com/v1"  # 可选
+export OPENAI_MODEL="gpt-4o-mini"  # 可选
 export GITHUB_TOKEN="your-github-token"
 ```
 
@@ -216,7 +211,6 @@ on:
   schedule:
     # UTC时间，北京时间需要-8小时
     - cron: '0 0 * * *'   # UTC 00:00 = 北京 08:00
-    - cron: '0 12 * * *'  # UTC 12:00 = 北京 20:00（可添加多个）
 ```
 
 ### 手动触发
@@ -225,11 +219,26 @@ on:
 2. 选择 **Auto Collect & Publish**
 3. 点击 **Run workflow**
 
+## 封面图库
+
+系统内置32张精选Unsplash AI主题封面图，按8个类别分类：
+
+| 类别 | 数量 | 匹配关键词 |
+|-----|------|-----------|
+| neural_network | 4 | 神经网络、神经元 |
+| robot | 4 | 机器人、机器人技术 |
+| data | 4 | 数据、数据科学 |
+| tech | 4 | 科技、技术 |
+| ml | 4 | 机器学习、ML |
+| llm | 4 | 大语言模型、LLM |
+| abstract | 4 | 抽象、概念 |
+| cloud | 4 | 云、云计算 |
+
 ## 常见问题
 
-### Q: Gemini API 报 429 错误？
+### Q: API 报 429 错误？
 
-A: 免费版配额用尽，会自动切换到 Groq。等待第二天配额重置，或升级付费计划。
+A: API配额用尽或请求频率过高。等待配额重置，或考虑升级计划。
 
 ### Q: 文章没有发布到 hexo-blog？
 
@@ -237,6 +246,19 @@ A: 检查以下几点：
 1. `BLOG_PUSH_TOKEN` 是否有 `repo` 权限
 2. `config.yaml` 中的 `target_repo` 是否正确
 3. 查看 Actions 日志中的错误信息
+
+### Q: 如何修改 NewAPI 配置？
+
+A: 编辑 `.github/workflows/collect.yml` 中的环境变量：
+
+```yaml
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  OPENAI_API_BASE: https://your-newapi-domain.com/v1  # 修改为你的 NewAPI 地址
+  OPENAI_MODEL: gpt-4o-mini  # 修改为你要使用的模型
+```
+
+> **注意**：本系统仅支持 NewAPI 自托管服务，不支持官方 OpenAI API。
 
 ### Q: 如何添加新的数据源？
 
