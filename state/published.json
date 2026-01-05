@@ -59,6 +59,18 @@
       "title": "从零开始构建AI Agent：本地大语言模型实战指南",
       "published_at": "2026-01-04T17:49:50.905616",
       "hexo_path": "source/_posts/2026-01-04-cong-ling-kai-shi-gou-jian-ai-agent-ben-di-da-yu-y.md"
+    },
+    {
+      "source_url": "https://vue-hook-optimizer.vercel.app/",
+      "title": "当AI遇上代码重构：AST分析如何重塑大型项目优化",
+      "published_at": "2026-01-05T02:30:49.610463",
+      "hexo_path": "source/_posts/2026-01-05-dang-aiyu-shang-dai-ma-zhong-gou-astfen-xi-ru-he-z.md"
+    },
+    {
+      "source_url": "https://theguardrail.net/",
+      "title": "AI安全研究者的福音：如何高效获取ArXiv最新论文",
+      "published_at": "2026-01-05T02:30:51.083017",
+      "hexo_path": "source/_posts/2026-01-05-aian-quan-yan-jiu-zhe-de-fu-yin-ru-he-gao-xiao-huo.md"
     }
   ]
 }
