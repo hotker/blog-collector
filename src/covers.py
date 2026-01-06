@@ -124,6 +124,7 @@ def upload_image(image_data: bytes) -> str:
 def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str = "") -> str:
     """
     Intelligently generate a cover image based on article content.
+    Returns a default cover if generation fails.
 
     Args:
         title: Article title
@@ -131,16 +132,37 @@ def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str =
         summary: Article summary
 
     Returns:
-        URL of the generated cover image
+        URL of the generated cover image or a default one
     """
-    analysis = analyze_content(title, tags, summary)
-    keywords = analysis.get("keywords", "technology, AI, innovation")
-    style = analysis.get("style", "futuristic tech")
+    default_cover = "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200"
 
-    image_data = generate_cover_image(keywords, style)
-    image_url = upload_image(image_data)
+    # Try to load default cover from config if possible
+    try:
+        import yaml
+        from pathlib import Path
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                default_cover = config.get("default_cover", default_cover)
+    except Exception:
+        pass
 
-    return image_url
+    try:
+        if not client:
+            return default_cover
+
+        analysis = analyze_content(title, tags, summary)
+        keywords = analysis.get("keywords", "technology, AI, innovation")
+        style = analysis.get("style", "futuristic tech")
+
+        image_data = generate_cover_image(keywords, style)
+        image_url = upload_image(image_data)
+
+        return image_url
+    except Exception as e:
+        print(f"    [Cover] Generation failed: {e}. Using default cover.")
+        return default_cover
 
 
 if __name__ == "__main__":
