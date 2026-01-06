@@ -83,6 +83,18 @@
       "title": "当Claude遇上Minecraft：AI在沙盒游戏中的探索之旅",
       "published_at": "2026-01-06T02:19:51.145441",
       "hexo_path": "source/_posts/2026-01-06-dang-claudeyu-shang-minecraft-aizai-sha-he-you-xi.md"
+    },
+    {
+      "source_url": "https://www.lesswrong.com/posts/u6Lacc7wx4yYkBQ3r/insights-into-claude-opus-4-5-from-pokemon",
+      "title": "从宝可梦测试看Claude Opus 4.5：AI模型评估的新思路",
+      "published_at": "2026-01-06T17:56:31.710132",
+      "hexo_path": "source/_posts/2026-01-06-cong-bao-ke-meng-ce-shi-kan-claude-opus-4-5-aimo-x.md"
+    },
+    {
+      "source_url": "https://abiorhtech.substack.com/p/why-your-ai-agent-needs-a-runtime",
+      "title": "为什么你的AI Agent需要一个运行时环境，而不仅仅是框架",
+      "published_at": "2026-01-06T17:56:33.144238",
+      "hexo_path": "source/_posts/2026-01-06-wei-shi-yao-ni-de-ai-agentxu-yao-yi-ge-yun-xing-sh.md"
     }
   ]
 }
