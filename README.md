@@ -7,7 +7,7 @@ AI文章自动采集系统 - 每天定时采集全球优秀AI资讯，通过AI�
 - **多源采集**：RSS订阅 + 网站爬虫，覆盖全球主流AI媒体（8个RSS源 + 2个中文站）
 - **灵活AI引擎**：OpenAI兼容API，支持自托管/第三方服务
 - **智能改写**：AI二次创作，将英文资讯转化为原创中文内容
-- **智能封面**：32张精选Unsplash AI主题图，关键词匹配自动选择
+- **智能封面**：Gemini AI 实时生成，每篇文章专属封面
 - **自动发布**：通过GitHub API推送到hexo-blog仓库
 - **防重复**：记录已发布文章URL，避免重复采集
 - **定时运行**：GitHub Actions每天北京时间8:00自动执行
@@ -47,7 +47,7 @@ blog-collector/
 │   ├── __init__.py
 │   ├── collector.py      # 采集器（RSS解析 + 网站爬虫）
 │   ├── rewriter.py       # AI改写（OpenAI兼容API）
-│   ├── covers.py         # 智能封面选择（32张Unsplash图片）
+│   ├── covers.py         # 智能封面（Gemini AI 生成）
 │   └── publisher.py      # GitHub API发布
 ├── state/
 │   └── published.json    # 已发布文章记录（防重复）
@@ -71,6 +71,7 @@ blog-collector/
 | `OPENAI_API_KEY` | NewAPI 密钥 | 是 |
 | `OPENAI_MODEL` | 使用的模型（默认：gpt-4o-mini） | 否 |
 | `BLOG_PUSH_TOKEN` | GitHub Personal Access Token | 是 |
+| `GEMINI_API_KEY` | Gemini API 密钥（封面生成） | 是 |
 
 > 默认 API 地址为 NewAPI 自托管服务地址，可在 workflow 中修改。
 
@@ -163,6 +164,7 @@ article:
 | `OPENAI_API_KEY` | NewAPI 密钥 | 必需 |
 | `OPENAI_API_BASE` | NewAPI 服务地址 | `https://api.hotker.com/v1` |
 | `OPENAI_MODEL` | 使用的模型 | `gpt-4o-mini` |
+| `GEMINI_API_KEY` | Gemini API 密钥 | 必需 |
 
 > **注意**：本系统仅支持 NewAPI 自托管服务，不支持官方 OpenAI API。
 
@@ -181,6 +183,7 @@ export OPENAI_API_KEY="your-api-key"
 export OPENAI_API_BASE="https://api.hotker.com/v1"  # 可选
 export OPENAI_MODEL="gpt-4o-mini"  # 可选
 export GITHUB_TOKEN="your-github-token"
+export GEMINI_API_KEY="your-gemini-key"
 ```
 
 ### 运行
@@ -219,20 +222,44 @@ on:
 2. 选择 **Auto Collect & Publish**
 3. 点击 **Run workflow**
 
-## 封面图库
+## 智能封面生成
 
-系统内置32张精选Unsplash AI主题封面图，按8个类别分类：
+系统使用 Gemini AI 为每篇文章实时生成专属封面图。
 
-| 类别 | 数量 | 匹配关键词 |
-|-----|------|-----------|
-| neural_network | 4 | 神经网络、神经元 |
-| robot | 4 | 机器人、机器人技术 |
-| data | 4 | 数据、数据科学 |
-| tech | 4 | 科技、技术 |
-| ml | 4 | 机器学习、ML |
-| llm | 4 | 大语言模型、LLM |
-| abstract | 4 | 抽象、概念 |
-| cloud | 4 | 云、云计算 |
+### 工作流程
+
+1. **内容分析**：使用 Gemini 分析文章标题、标签和摘要，提取关键词和风格
+2. **图片生成**：通过 Gemini Imagen API 生成 16:9 比例的高质量封面图
+3. **自动上传**：将生成的图片上传到图床服务并返回 URL
+
+### 支持的风格
+
+| 风格 | 说明 |
+|-----|------|
+| futuristic tech | 未来科技感 |
+| digital art | 数字艺术 |
+| minimalist illustration | 极简插画 |
+| abstract geometric | 抽象几何 |
+| cyberpunk | 赛博朋克 |
+| clean modern | 简约现代 |
+
+### 环境配置
+
+封面生成需要配置以下环境变量：
+
+| 环境变量 | 说明 |
+|---------|------|
+| `GEMINI_API_KEY` | Google AI Studio API 密钥 |
+| 自定义图床 | 可在 `src/covers.py` 中修改 `UPLOAD_URL` |
+
+### 本地测试
+
+```bash
+python -c "
+from src.covers import get_smart_cover
+url = get_smart_cover('ChatGPT新功能发布', ['AI', 'OpenAI'], 'OpenAI发布了ChatGPT的新功能')
+print(f'Cover URL: {url}')
+"
 
 ## 常见问题
 
@@ -256,6 +283,7 @@ env:
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_API_BASE: https://your-newapi-domain.com/v1  # 修改为你的 NewAPI 地址
   OPENAI_MODEL: gpt-4o-mini  # 修改为你要使用的模型
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 ```
 
 > **注意**：本系统仅支持 NewAPI 自托管服务，不支持官方 OpenAI API。
