@@ -33,6 +33,7 @@ jobs:
           OPENAI_API_BASE: https://api.hotker.com/v1
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
           GITHUB_TOKEN: ${{ secrets.BLOG_PUSH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
       - name: Update state file
