@@ -8,7 +8,7 @@ import re
 from typing import Optional
 from datetime import datetime
 
-from src.covers import get_smart_cover, get_random_cover
+from src.covers import get_smart_cover
 
 
 class Rewriter:
