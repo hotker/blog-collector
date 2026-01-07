@@ -245,6 +245,18 @@
       "title": "卡特彼勒联手Nvidia：用AI重新定义建筑机械的智能边界",
       "published_at": "2026-01-07T17:23:44.665305",
       "hexo_path": "source/_posts/2026-01-07-qia-te-bi-le-lian-shou-nvidia-yong-aizhong-xin-din.md"
+    },
+    {
+      "source_url": "https://milvus.io/blog/zilliz-trained-and-open-sourced-bilingual-semantic-highlighting-model-for-production-ai.md",
+      "title": "Zilliz开源生产级语义高亮模型：AI代码理解的新突破",
+      "published_at": "2026-01-07T17:34:37.660188",
+      "hexo_path": "source/_posts/2026-01-07-zillizkai-yuan-sheng-chan-ji-yu-yi-gao-liang-mo-xi.md"
+    },
+    {
+      "source_url": "https://www.theargumentmag.com/p/i-cant-stop-yelling-at-claude-code",
+      "title": "当AI编程助手让我忍不住咆哮：Claude Code使用体验深度剖析",
+      "published_at": "2026-01-07T17:34:39.058362",
+      "hexo_path": "source/_posts/2026-01-07-dang-aibian-cheng-zhu-shou-rang-wo-ren-bu-zhu-pao.md"
     }
   ]
 }
