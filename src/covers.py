@@ -76,9 +76,45 @@ def analyze_content(title: str, tags: Optional[List[str]] = None, summary: str =
         }
 
 
+def generate_cover_url(keywords: str, style: str) -> str:
+    """
+    Generate cover image URL using Pollinations.ai (free, no API key required).
+    Returns the URL directly - Pollinations.ai URLs are persistent.
+
+    Args:
+        keywords: Keywords describing the image content
+        style: Style for the image
+
+    Returns:
+        Direct URL to the generated image
+    """
+    prompt = f"Blog cover about {keywords}, {style} style, tech blog header, professional, no text"
+    encoded_prompt = quote(prompt)
+
+    # Pollinations.ai URL-based API
+    # Using flux model for better quality, 16:9 aspect ratio for blog covers
+    # Add seed for cache-friendly reproducible results
+    import hashlib
+    seed = int(hashlib.md5(prompt.encode()).hexdigest()[:8], 16)
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=576&model=flux&nologo=true&seed={seed}"
+
+    print(f"    [Cover Pollinations] Generating URL for keywords: {keywords}, style: {style}")
+
+    # Verify the URL works by making a HEAD request
+    try:
+        response = requests.head(url, timeout=30, allow_redirects=True)
+        if response.status_code == 200:
+            print(f"    [Cover Pollinations] URL verified: {url[:80]}...")
+            return url
+        else:
+            raise ValueError(f"Pollinations.ai returned status {response.status_code}")
+    except Exception as e:
+        raise ValueError(f"Pollinations.ai request failed: {e}")
+
+
 def generate_cover_image(keywords: str, style: str) -> bytes:
     """
-    Generate cover image using Pollinations.ai (free, no API key required).
+    Generate cover image bytes using Pollinations.ai (for upload fallback).
 
     Args:
         keywords: Keywords describing the image content
@@ -90,18 +126,18 @@ def generate_cover_image(keywords: str, style: str) -> bytes:
     prompt = f"Blog cover about {keywords}, {style} style, tech blog header, professional, no text"
     encoded_prompt = quote(prompt)
 
-    # Pollinations.ai URL-based API
-    # Using flux model for better quality, 16:9 aspect ratio for blog covers
-    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=576&model=flux&nologo=true"
+    import hashlib
+    seed = int(hashlib.md5(prompt.encode()).hexdigest()[:8], 16)
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=576&model=flux&nologo=true&seed={seed}"
 
-    print(f"    [Cover Pollinations] Generating image for keywords: {keywords}, style: {style}")
+    print(f"    [Cover Pollinations] Downloading image for keywords: {keywords}, style: {style}")
 
     try:
         response = requests.get(url, timeout=60)
         response.raise_for_status()
 
         image_bytes = response.content
-        print(f"    [Cover Pollinations] Generated {len(image_bytes)} bytes")
+        print(f"    [Cover Pollinations] Downloaded {len(image_bytes)} bytes")
         return image_bytes
 
     except Exception as e:
@@ -251,14 +287,22 @@ def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str =
         keywords = "technology, AI, innovation"
         style = "futuristic tech"
 
-    # Try Pollinations.ai first (primary provider, free, no API key needed)
+    # Try Pollinations.ai direct URL first (no upload needed, bypasses Cloudflare)
+    try:
+        image_url = generate_cover_url(keywords, style)
+        print(f"    [Cover] Generated cover using Pollinations.ai (direct URL)")
+        return image_url
+    except Exception as e:
+        print(f"    [Cover] Pollinations.ai direct URL failed: {e}")
+
+    # Fallback: Try Pollinations.ai with upload to our server
     try:
         image_data = generate_cover_image(keywords, style)
         image_url = upload_image(image_data)
-        print(f"    [Cover] Generated cover using Pollinations.ai")
+        print(f"    [Cover] Generated cover using Pollinations.ai (uploaded)")
         return image_url
     except Exception as e:
-        print(f"    [Cover] Pollinations.ai failed: {e}")
+        print(f"    [Cover] Pollinations.ai upload failed: {e}")
 
     # Fallback to Gemini
     if client:
