@@ -11,19 +11,24 @@ from typing import Optional, List
 from google import genai
 from google.genai import types
 
+def _get_hf_api_key():
+    """Get Hugging Face API key from environment."""
+    return os.getenv("HUGGINGFACE_API_KEY")
+
+
+def _get_gemini_api_key():
+    """Get Gemini API key from environment."""
+    return os.getenv("GEMINI_API_KEY")
+
+
 # Configuration
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 UPLOAD_URL = "https://imagine.hotker.com/upload?authCode=130075"
 IMAGE_BASE_URL = "https://imagine.hotker.com"
 
-# Hugging Face Inference API
-HF_INFERENCE_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1-base"
-
-# Initialize clients
+# Initialize Gemini client
 client = None
-if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+if _get_gemini_api_key():
+    client = genai.Client(api_key=_get_gemini_api_key())
 
 
 def analyze_content(title: str, tags: Optional[List[str]] = None, summary: str = "") -> dict:
@@ -92,12 +97,12 @@ def generate_cover_image(keywords: str, style: str) -> bytes:
 
     print(f"    [Cover HF] Generating image for keywords: {keywords}, style: {style}")
 
-    if not HUGGINGFACE_API_KEY:
+    if not _get_hf_api_key():
         raise ValueError("HUGGINGFACE_API_KEY environment variable not set")
 
     try:
         client = InferenceClient(
-            api_key=HUGGINGFACE_API_KEY
+            api_key=_get_hf_api_key()
         )
 
         # Generate image - returns PIL.Image
@@ -257,7 +262,7 @@ def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str =
         style = "futuristic tech"
 
     # Try Hugging Face first (primary provider)
-    if HUGGINGFACE_API_KEY:
+    if _get_hf_api_key():
         try:
             image_data = generate_cover_image(keywords, style)
             image_url = upload_image(image_data)
@@ -304,7 +309,7 @@ if __name__ == "__main__":
         print("No GEMINI_API_KEY found - using simple keyword extraction")
 
     print("\nProvider Priority:")
-    if HUGGINGFACE_API_KEY:
+    if _get_hf_api_key():
         print("  1. Hugging Face (primary, requires API key)")
     else:
         print("  1. Hugging Face (skipped - no API key)")
