@@ -106,9 +106,10 @@ def generate_cover_image(keywords: str, style: str) -> bytes:
         )
 
         # Generate image - returns PIL.Image
+        # Using stabilityai stable-diffusion-xl which is free and reliable
         image = client.text_to_image(
             prompt,
-            model="runwayml/stable-diffusion-v1-5",
+            model="stabilityai/stable-diffusion-xl-base-1.0",
             width=1024,
             height=576,
             num_inference_steps=25
