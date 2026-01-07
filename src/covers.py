@@ -141,7 +141,7 @@ def generate_cover_image_gemini(keywords: str, style: str) -> bytes:
 
     print(f"    [Cover Gemini] Generating image for keywords: {keywords}, style: {style}")
     response = client.models.generate_images(
-        model="imagen-3.0-generate-002",
+        model="imagen-3.0-generate-001",
         prompt=prompt,
         config=types.GenerateImagesConfig(
             number_of_images=1,
