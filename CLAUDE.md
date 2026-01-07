@@ -34,7 +34,7 @@ Automated AI content pipeline: Collect -> Rewrite -> Publish.
   - Formats output as Hexo Markdown with front-matter.
 - **Cover Manager** (`src/covers.py`):
   - Uses Gemini AI to analyze article content and extract keywords.
-  - Generates cover images via Gemini Imagen API.
+  - Generates cover images via Pollinations.ai (free, no API key) with Gemini as fallback.
   - Uploads images to custom image hosting service.
 - **Publisher** (`src/publisher.py`):
   - Uses `PyGithub` to push generated Markdown files to a separate repository (e.g., `hotker/hexo-blog`).
