@@ -1,5 +1,5 @@
 """
-Cover images module - AI-generated cover images using multiple providers (Pollinations AI, Hugging Face, Gemini)
+Cover images module - AI-generated cover images using multiple providers (Hugging Face, Gemini)
 """
 
 import os
@@ -13,14 +13,11 @@ from google.genai import types
 
 # Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")  # Optional
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 UPLOAD_URL = "https://imagine.hotker.com/upload?authCode=130075"
 IMAGE_BASE_URL = "https://imagine.hotker.com"
 
-# Pollinations AI API (free, no auth required)
-POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt"
-
-# Hugging Face Inference API (requires token)
+# Hugging Face Inference API
 HF_INFERENCE_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1-base"
 
 # Initialize clients
@@ -77,42 +74,9 @@ def analyze_content(title: str, tags: Optional[List[str]] = None, summary: str =
         }
 
 
-def generate_cover_image_pollinations(keywords: str, style: str) -> bytes:
-    """
-    Generate cover image using Pollinations AI (completely free, no auth required).
-
-    Args:
-        keywords: Keywords describing the image content
-        style: Style for the image
-
-    Returns:
-        Image bytes (PNG format)
-    """
-    from urllib.parse import quote
-
-    prompt = f"Blog cover about {keywords}, {style} style, tech blog header, professional, no text"
-
-    print(f"    [Cover Pollinations] Generating image for keywords: {keywords}, style: {style}")
-
-    # Build URL with parameters
-    prompt_encoded = quote(prompt)
-    url = f"{POLLINATIONS_BASE_URL}/{prompt_encoded}?width=1280&height=720&seed={hash(keywords + style) % 1000000}&nologo=true&model=flux"
-
-    try:
-        response = requests.get(url, timeout=180)
-        response.raise_for_status()
-
-        image_bytes = response.content
-        print(f"    [Cover Pollinations] Generated {len(image_bytes)} bytes")
-        return image_bytes
-
-    except requests.RequestException as e:
-        raise ValueError(f"Pollinations AI request failed: {e}")
-
-
 def generate_cover_image(keywords: str, style: str) -> bytes:
     """
-    Generate cover image using Hugging Face Inference API (SD2.1).
+    Generate cover image using Hugging Face Inference API.
 
     Args:
         keywords: Keywords describing the image content
@@ -121,50 +85,36 @@ def generate_cover_image(keywords: str, style: str) -> bytes:
     Returns:
         Image bytes (PNG format)
     """
+    from huggingface_hub import InferenceClient
+    import io
+
     prompt = f"Blog cover about {keywords}, {style} style, tech blog header, professional, no text"
 
     print(f"    [Cover HF] Generating image for keywords: {keywords}, style: {style}")
 
-    headers = {}
-    if HUGGINGFACE_API_KEY:
-        headers["Authorization"] = f"Bearer {HUGGINGFACE_API_KEY}"
+    if not HUGGINGFACE_API_KEY:
+        raise ValueError("HUGGINGFACE_API_KEY environment variable not set")
 
     try:
-        response = requests.post(
-            HF_INFERENCE_URL,
-            headers=headers,
-            json={"inputs": prompt},
-            timeout=120
+        client = InferenceClient(
+            api_key=HUGGINGFACE_API_KEY
         )
 
-        if response.status_code == 200:
-            image_bytes = response.content
-            print(f"    [Cover HF] Generated {len(image_bytes)} bytes")
-            return image_bytes
-        elif response.status_code == 429:
-            raise ValueError("Hugging Face rate limit exceeded")
-        elif response.status_code == 503:
-            # Model loading, wait and retry
-            import time
-            wait_time = response.json().get("estimated_time", 20)
-            print(f"    [Cover HF] Model loading, waiting {wait_time}s...")
-            time.sleep(wait_time)
-            # Retry once
-            response = requests.post(
-                HF_INFERENCE_URL,
-                headers=headers,
-                json={"inputs": prompt},
-                timeout=120
-            )
-            if response.status_code == 200:
-                image_bytes = response.content
-                print(f"    [Cover HF] Generated {len(image_bytes)} bytes after retry")
-                return image_bytes
-            raise ValueError(f"Hugging Face error after retry: {response.status_code}")
-        else:
-            raise ValueError(f"Hugging Face API error: {response.status_code} - {response.text[:200]}")
+        # Generate image - returns PIL.Image
+        image = client.text_to_image(
+            prompt,
+            model="black-forest-labs/FLUX.1-schnell"
+        )
 
-    except requests.RequestException as e:
+        # Convert to bytes
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format='PNG')
+        img_byte_arr = img_byte_arr.getvalue()
+
+        print(f"    [Cover HF] Generated {len(img_byte_arr)} bytes")
+        return img_byte_arr
+
+    except Exception as e:
         raise ValueError(f"Hugging Face request failed: {e}")
 
 
@@ -267,7 +217,7 @@ def upload_image(image_data: bytes) -> str:
 def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str = "") -> str:
     """
     Intelligently generate a cover image based on article content.
-    Try Pollinations first (free, no auth), then Hugging Face, then Gemini, then default cover.
+    Try Hugging Face first, then Gemini, then default cover.
 
     Args:
         title: Article title
@@ -306,24 +256,17 @@ def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str =
         keywords = "technology, AI, innovation"
         style = "futuristic tech"
 
-    # Try Pollinations AI first (free, no auth required)
-    try:
-        image_data = generate_cover_image_pollinations(keywords, style)
-        image_url = upload_image(image_data)
-        print(f"    [Cover] Generated cover using Pollinations AI")
-        return image_url
-    except Exception as e:
-        print(f"    [Cover] Pollinations AI failed: {e}")
-
-    # Fallback to Hugging Face (requires API key)
+    # Try Hugging Face first (primary provider)
     if HUGGINGFACE_API_KEY:
         try:
             image_data = generate_cover_image(keywords, style)
             image_url = upload_image(image_data)
-            print(f"    [Cover] Generated cover using Hugging Face (fallback)")
+            print(f"    [Cover] Generated cover using Hugging Face")
             return image_url
         except Exception as e:
             print(f"    [Cover] Hugging Face failed: {e}")
+    else:
+        print(f"    [Cover] Hugging Face API key not set, skipping...")
 
     # Fallback to Gemini
     if client:
@@ -341,7 +284,7 @@ def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str =
 
 
 if __name__ == "__main__":
-    print("Testing AI cover generation (Pollinations AI -> Hugging Face -> Gemini)...")
+    print("Testing AI cover generation (Hugging Face -> Gemini)...")
 
     test_title = "ChatGPT新功能发布"
     test_tags = ["AI", "OpenAI", "LLM"]
@@ -361,16 +304,15 @@ if __name__ == "__main__":
         print("No GEMINI_API_KEY found - using simple keyword extraction")
 
     print("\nProvider Priority:")
-    print("  1. Pollinations AI (free, no auth)")
     if HUGGINGFACE_API_KEY:
-        print("  2. Hugging Face (requires API key)")
+        print("  1. Hugging Face (primary, requires API key)")
     else:
-        print("  2. Hugging Face (skipped - no API key)")
+        print("  1. Hugging Face (skipped - no API key)")
     if client:
-        print("  3. Gemini (requires API key)")
+        print("  2. Gemini (fallback, requires API key)")
     else:
-        print("  3. Gemini (skipped - no API key)")
-    print("  4. Default cover")
+        print("  2. Gemini (skipped - no API key)")
+    print("  3. Default cover")
 
     print("\nGenerating and uploading cover...")
     try:
