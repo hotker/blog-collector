@@ -108,7 +108,10 @@ def generate_cover_image(keywords: str, style: str) -> bytes:
         # Generate image - returns PIL.Image
         image = client.text_to_image(
             prompt,
-            model="black-forest-labs/FLUX.1-schnell"
+            model="runwayml/stable-diffusion-v1-5",
+            width=1024,
+            height=576,
+            num_inference_steps=25
         )
 
         # Convert to bytes
