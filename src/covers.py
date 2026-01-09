@@ -8,9 +8,19 @@ import json
 import requests
 from typing import Optional, List
 from urllib.parse import quote
+from src.utils import get_retry_session
 
 from google import genai
 from google.genai import types
+
+# Lazy session initialization
+_session = None
+
+def _get_session():
+    global _session
+    if _session is None:
+        _session = get_retry_session()
+    return _session
 
 
 def _get_gemini_api_key():
@@ -102,7 +112,8 @@ def generate_cover_url(keywords: str, style: str) -> str:
 
     # Verify the URL works by making a HEAD request
     try:
-        response = requests.head(url, timeout=30, allow_redirects=True)
+        session = _get_session()
+        response = session.head(url, timeout=30, allow_redirects=True)
         if response.status_code == 200:
             print(f"    [Cover Pollinations] URL verified: {url[:80]}...")
             return url
@@ -133,7 +144,8 @@ def generate_cover_image(keywords: str, style: str) -> bytes:
     print(f"    [Cover Pollinations] Downloading image for keywords: {keywords}, style: {style}")
 
     try:
-        response = requests.get(url, timeout=60)
+        session = _get_session()
+        response = session.get(url, timeout=60)
         response.raise_for_status()
 
         image_bytes = response.content
@@ -201,7 +213,8 @@ def upload_image(image_data: bytes) -> str:
     print(f"    [Upload] Sending {len(image_data)} bytes to {UPLOAD_URL}")
 
     try:
-        response = requests.post(UPLOAD_URL, files=files, headers=headers, timeout=30)
+        session = _get_session()
+        response = session.post(UPLOAD_URL, files=files, headers=headers, timeout=30)
 
         if response.status_code != 200:
             print(f"    [Upload] Error: {response.status_code} - {response.text}")

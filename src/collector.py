@@ -10,6 +10,7 @@ from typing import Optional
 import yaml
 import json
 from pathlib import Path
+from src.utils import get_retry_session
 
 
 class Article:
@@ -50,6 +51,7 @@ class Collector:
         self.state_file = Path(state_file)
         self.sources = self._load_sources()
         self.published = self._load_published()
+        self.session = get_retry_session()
 
     def _load_sources(self) -> dict:
         """Load source configuration from YAML file"""
@@ -127,7 +129,7 @@ class Collector:
                 url = f"https://www.reddit.com/r/{subreddit}/{sort}.json?limit={limit}"
                 headers = {"User-Agent": "BlogCollector/1.0"}
 
-                response = requests.get(url, headers=headers, timeout=10)
+                response = self.session.get(url, headers=headers, timeout=15)
                 response.raise_for_status()
                 data = response.json()
 
@@ -166,7 +168,7 @@ class Collector:
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
                 }
-                response = requests.get(source["url"], headers=headers, timeout=10)
+                response = self.session.get(source["url"], headers=headers, timeout=15)
                 response.raise_for_status()
 
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -209,7 +211,7 @@ class Collector:
     def _fetch_article_content(self, url: str, headers: dict) -> str:
         """Fetch and extract main content from an article URL"""
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = self.session.get(url, headers=headers, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
