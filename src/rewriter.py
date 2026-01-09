@@ -5,6 +5,7 @@ Editorial Room module - Transforms articles into high-quality content using mult
 import os
 import json
 import re
+import yaml
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -246,13 +247,6 @@ Focus on what is NOT said in the text.
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        # Format tags
-        tags_yaml = "\n".join(f"  - {tag}" for tag in rewritten.get("tags", ["AI"]))
-
-        # Format categories
-        categories = rewritten.get("categories", ["AI资讯"])
-        categories_yaml = "\n".join(f"  - {cat}" for cat in categories)
-
         # Default cover if not provided - use smart selection based on article content
         if not cover_url:
             cover_url = get_smart_cover(
@@ -261,6 +255,30 @@ Focus on what is NOT said in the text.
                 summary=rewritten.get('summary', '')
             )
 
+        # Construct frontmatter dict
+        frontmatter = {
+            "title": rewritten['title'],
+            "date": date_str,
+            "tags": rewritten.get("tags", ["AI"]),
+            "categories": rewritten.get("categories", ["AI资讯"]),
+            "poster": {
+                "topic": None,
+                "headline": rewritten.get('summary', '')[:100],
+                "caption": None,
+                "color": None
+            },
+            "cover": cover_url,
+            "banner": cover_url
+        }
+
+        # Generate YAML frontmatter
+        yaml_str = yaml.dump(
+            frontmatter,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False
+        ).strip()
+
         # Add Persona badge to the content
         persona_badge = ""
         if "_persona" in rewritten:
@@ -268,19 +286,7 @@ Focus on what is NOT said in the text.
             persona_badge = f"\n\n> *本文由 AI 编辑部【{persona_name}】撰写*"
 
         post = f"""---
-title: {rewritten['title']}
-date: {date_str}
-tags:
-{tags_yaml}
-categories:
-{categories_yaml}
-poster:
-  topic: null
-  headline: {rewritten.get('summary', '')[:100]}
-  caption: null
-  color: null
-cover: {cover_url}
-banner: {cover_url}
+{yaml_str}
 ---
 
 {rewritten['content']}
