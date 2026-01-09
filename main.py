@@ -51,7 +51,7 @@ def main():
 
     # Step 2: Rewrite articles using AI
     print("\n[2/3] Rewriting articles with AI...")
-    rewriter = Rewriter()
+    rewriter = Rewriter(config=config)
     rewritten_articles = []
 
     for article in candidates[:max_articles]:

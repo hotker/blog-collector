@@ -13,3 +13,8 @@ default_cover: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1
 article:
   min_content_length: 200  # Minimum content length to consider
   max_age_days: 3          # Maximum age of articles to collect
+
+# AI Editorial Room Settings
+editorial:
+  enable_auto_triage: true   # Enable automatic persona selection
+  default_persona: "geek"    # Fallback persona: "geek", "philosopher", or "observer"
