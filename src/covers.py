@@ -6,6 +6,7 @@ import os
 import io
 import json
 import requests
+import random
 from typing import Optional, List
 from urllib.parse import quote
 from src.utils import get_retry_session
@@ -15,6 +16,31 @@ from google.genai import types
 
 # Lazy session initialization
 _session = None
+
+# Fallback Image Library (Curated High-Quality Unsplash Images)
+FALLBACK_IMAGES = {
+    "ai": [
+        "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&q=80",  # Abstract AI brain
+        "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1200&q=80",  # Neural network particles
+        "https://images.unsplash.com/photo-1675271591211-126ad94e495d?w=1200&q=80",  # AI Humanoid hand
+        "https://images.unsplash.com/photo-1655720031554-a929595ff968?w=1200&q=80",  # Digital brain visualization
+    ],
+    "code": [
+        "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80",  # Coding screen dark mode
+        "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=1200&q=80",  # Source code generic
+        "https://images.unsplash.com/photo-1607799275518-d750cc6867a8?w=1200&q=80",  # Programmer keyboard
+    ],
+    "robot": [
+        "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=80",  # White sleek robot
+        "https://images.unsplash.com/photo-1535378437327-b7149a516c17?w=1200&q=80",  # Robot close up
+    ],
+    "default": [
+        "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80",  # Tech chips/circuits
+        "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&q=80",  # Team working tech
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80",  # Global network abstract
+        "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80",  # Cyberpunk city
+    ]
+}
 
 def _get_session():
     global _session
@@ -258,6 +284,28 @@ def upload_image(image_data: bytes) -> str:
         raise
 
 
+def _get_fallback_cover(tags: Optional[List[str]] = None) -> str:
+    """Select a fallback cover based on tags."""
+    if not tags:
+        return random.choice(FALLBACK_IMAGES["default"])
+
+    # Normalize tags to lowercase for matching
+    tags_lower = [t.lower() for t in tags]
+
+    # Check for categories
+    if any(k in t for t in tags_lower for k in ["ai", "gpt", "llm", "neural", "model", "diffusion"]):
+        return random.choice(FALLBACK_IMAGES["ai"])
+
+    if any(k in t for t in tags_lower for k in ["code", "python", "javascript", "dev", "programming", "api"]):
+        return random.choice(FALLBACK_IMAGES["code"])
+
+    if any(k in t for t in tags_lower for k in ["robot", "hardware", "bot", "drone"]):
+        return random.choice(FALLBACK_IMAGES["robot"])
+
+    # Default fallback
+    return random.choice(FALLBACK_IMAGES["default"])
+
+
 def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str = "") -> str:
     """
     Intelligently generate a cover image based on article content.
@@ -327,9 +375,9 @@ def get_smart_cover(title: str, tags: Optional[List[str]] = None, summary: str =
         except Exception as e:
             print(f"    [Cover] Gemini also failed: {e}")
 
-    # Fallback to default cover
-    print(f"    [Cover] Using default cover")
-    return default_cover
+    # Fallback to smart fallback selection
+    print(f"    [Cover] Using smart fallback cover")
+    return _get_fallback_cover(tags)
 
 
 if __name__ == "__main__":
